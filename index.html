@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book Typesetter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#14213d;--navy2:#1d2e52;--gold:#c9a227;--ink:#e8ebf2;--desk:#2a3550}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.4 "Inter",system-ui,sans-serif;background:var(--desk);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:var(--navy);border-bottom:2px solid var(--gold)}
+header h1{font-size:16px;margin:0 auto 0 0;font-weight:700}
+button,select,input,textarea{font:inherit}
+button{background:var(--navy2);color:var(--ink);border:1px solid #3b4d7a;border-radius:6px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--gold)}button.pri{background:var(--gold);color:#1a1a1a;border-color:var(--gold);font-weight:700}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+main{flex:1;display:flex;min-height:0}
+aside{width:340px;flex:none;background:var(--navy);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex}.tabs button{flex:1;border-radius:0;border:0;border-bottom:2px solid transparent;background:none;padding:10px}
+.tabs button.on{border-color:var(--gold);color:var(--gold)}
+.panel{padding:12px 14px;overflow:auto;display:none;gap:10px;flex-direction:column}.panel.on{display:flex}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px}
+label input[type=number],label select,label input[type=text]{width:150px;background:#0e182e;color:var(--ink);border:1px solid #3b4d7a;border-radius:5px;padding:5px}
+label.c{justify-content:flex-start}
+textarea{width:100%;min-height:340px;background:#0e182e;color:var(--ink);border:1px solid #3b4d7a;border-radius:5px;padding:8px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.hint{font-size:12px;opacity:.7;margin:0}
+#view{flex:1;overflow:auto;padding:18px}
+#bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+#sheet{display:flex;flex-direction:column;align-items:center;gap:18px;transform-origin:top center}
+.row{display:flex;gap:0;box-shadow:0 6px 22px rgba(0,0,0,.45)}.spacer{background:transparent}
+</style>
+<style id="pagecss">
+.page{position:relative;background:#fffdf8;overflow:hidden;flex:none}
+.page .bd{position:absolute;overflow:hidden}
+.page .hd,.page .ft{position:absolute;font-size:.8em;text-align:center;font-style:italic;line-height:1}
+.page .ft{font-style:normal}
+.page p{margin:0}
+.page h1{font-weight:500;font-size:2em;text-align:center;margin:0 0 1.6em;line-height:1.15;hyphens:manual}
+.page h2{font-weight:500;font-size:1.2em;text-align:center;margin:1.6em 0 1em;hyphens:manual}
+.page .br{text-align:center;margin:1em 0}
+.page .q{margin:.8em 1.5em;font-size:.95em;font-style:italic}
+.page .tp{text-align:center;margin-top:30%}.page .tp h1{font-size:2.6em}
+.page .dc::first-letter{float:left;font-size:3.3em;line-height:.8;padding:.06em .08em 0 0}
+.page .dc.cont::first-letter{float:none;font-size:inherit;line-height:inherit;padding:0}
+.page .split{text-align-last:justify}
+</style>
+<style id="book"></style><style id="pr"></style>
+<style>
+@media print{body{display:block;height:auto;background:#fff}header,aside,#bar{display:none!important}main,#view{display:block;padding:0;overflow:visible}
+#sheet{zoom:1!important;display:block}.row{display:block;box-shadow:none}.spacer{display:none}
+.page{break-after:page;page-break-after:always;box-shadow:none}.page .bd{outline:none!important}}
+.guides .bd{outline:1px dashed rgba(200,40,40,.5)}
+@media(max-width:800px){main{flex-direction:column}aside{width:auto;max-height:45vh}}
+</style></head><body>
+<header><h1>Book Typesetter</h1>
+<button id="bSave">Save project</button><button id="bLoad">Open project</button>
+<button id="bDS" hidden>Save to Drive</button><button id="bDO" hidden>Open from Drive</button>
+<button id="bHtml">Export HTML</button><button class="pri" id="bPdf">Export PDF</button>
+<input type="file" id="fIn" hidden></header>
+<main><aside><div class="tabs"><button data-t="m" class="on">Manuscript</button><button data-t="l">Layout</button><button data-t="y">Type</button></div>
+<div class="panel on" id="p-m"></div><div class="panel" id="p-l"></div><div class="panel" id="p-y"></div></aside>
+<section id="view"><div id="bar"><button id="vS">Single</button><button id="vD">Spread</button>
+<button id="zo">−</button><span id="zv"></span><button id="zi">+</button><span id="info"></span></div><div id="sheet"></div></section></main>
+<script>
+const $=s=>document.querySelector(s),mm2px=v=>v/25.4*96;
+const SIZES={"Mass market 4.25 × 6.87 in":[108,175],"Digest 5.5 × 8.5 in":[140,216],"Trade 5 × 8 in":[127,203],"Trade 5.25 × 8 in":[133,203],"US Trade 6 × 9 in":[152,229],"Royal 6.14 × 9.21 in":[156,234],"A6":[105,148],"A5":[148,210],"B5":[176,250],"A4":[210,297],"US Letter":[216,279],"Square 8 × 8 in":[203,203],"Custom":null};
+const FONTS=["EB Garamond","Crimson Pro","Libre Baskerville","Lora","Merriweather","Source Serif 4","Cormorant Garamond","Georgia","Times New Roman"];
+const P="The lamp burned low as she turned the last page, and for a moment the whole house seemed to hold its breath. \"Is that all?\" she asked, though she already knew the answer. Outside, the rain had *finally* stopped--the street shone like a river of tin, and 1984 felt very far away.";
+const D={title:"Untitled Book",author:"Author Name",text:"# Chapter One\n\n"+Array(9).fill(P).join("\n\n")+"\n\n***\n\n"+Array(5).fill(P).join("\n\n")+"\n\n# Chapter Two\n\n"+Array(10).fill(P).join("\n\n")+"\n\n## A quiet interlude\n\n> The best books are written twice: once by the author and once by the reader.\n\n"+Array(4).fill(P).join("\n\n"),
+size:"US Trade 6 × 9 in",w:152,h:229,mt:20,mb:22,mi:22,mo:16,rect:true,tp:true,hdr:true,pn:true,guides:false,sink:20,
+font:"EB Garamond",fs:11,lh:1.45,ls:0,just:true,hyph:true,indent:true,parsp:0,dropcap:true,scap:true,lig:true,kern:true,onum:false,wo:true,sq:true,view:"spread",zoom:80};
+let U="mm";const toU=v=>U=="mm"?+v.toFixed(1):+(v/25.4).toFixed(3),fromU=v=>U=="mm"?v:v*25.4;
+const SPEC={m:[["title","Title","t"],["author","Author","t"]],
+l:[["size","Trim size","s",Object.keys(SIZES)],["unit","Units","u"],["w","Width","n","mm"],["h","Height","n","mm"],["mt","Top margin","n","mm"],["mb","Bottom margin","n","mm"],["mi","Inside margin","n","mm"],["mo","Outside margin","n","mm"],["sink","Chapter drop (%)","n"],["tp","Title page","c"],["rect","Chapters start on right page","c"],["hdr","Running headers","c"],["pn","Page numbers","c"],["guides","Show margin guides","c"]],
+y:[["font","Typeface","s",FONTS],["fs","Size (pt)","n","",.25],["lh","Line height","n","",.05],["ls","Letter spacing (em)","n","",.005],["parsp","Paragraph space (em)","n","",.1],["just","Justify text","c"],["hyph","Hyphenation","c"],["indent","First-line indent","c"],["dropcap","Drop cap at chapter start","c"],["scap","Small caps on opening line","c"],["lig","Ligatures","c"],["kern","Kerning","c"],["onum","Old-style numerals","c"],["wo","Avoid widows and orphans","c"],["sq","Smart quotes and dashes","c"]]};
+function build(){for(const t in SPEC){const p=$("#p-"+t);p.innerHTML="";
+ if(t=="m"){p.insertAdjacentHTML("beforeend",'<p class="hint"># Chapter, ## Section, *** scene break, &gt; quote, *italic*, **bold**, \\pb page break</p>')}
+ for(const [k,l,ty,o,st] of SPEC[t]){const lab=document.createElement("label");lab.className=ty=="c"?"c":"";let h="";
+  if(ty=="c")h=`<input type=checkbox data-k=${k} ${D[k]?"checked":""}> ${l}`;
+  else if(ty=="s")h=`${l}<select data-k=${k}>${o.map(x=>`<option ${x==D[k]?"selected":""}>${x}</option>`).join("")}</select>`;
+  else if(ty=="u")h=`${l}<select id=unit><option ${U=="mm"?"selected":""}>mm</option><option ${U=="in"?"selected":""}>in</option></select>`;
+  else if(ty=="t")h=`${l}<input type=text data-k=${k} value="${D[k]}">`;
+  else h=`${l}<input type=number data-k=${k} ${o=="mm"?"data-mm=1":""} step=${o=="mm"?(U=="mm"?.5:.05):st||1} value=${o=="mm"?toU(D[k]):D[k]}>`;
+  lab.innerHTML=h;p.append(lab)}
+ if(t=="m"){p.insertAdjacentHTML("beforeend",'<textarea id=tx spellcheck=false></textarea><button id=imp>Import .txt or .md</button>');$("#tx").value=D.text}}}
+build();
+document.addEventListener("input",e=>{const el=e.target;if(el.id=="tx"){D.text=el.value;return go()}
+ if(el.id=="unit"){U=el.value;return build()}
+ const k=el.dataset.k;if(!k)return;let v=el.type=="checkbox"?el.checked:el.type=="number"?parseFloat(el.value):el.value;
+ if(el.type=="number"&&isNaN(v))return;if(el.dataset.mm)v=fromU(v);D[k]=v;
+ if(k=="size"&&SIZES[v]){[D.w,D.h]=SIZES[v];build()}else if(["w","h"].includes(k)){D.size="Custom";$("[data-k=size]").value="Custom"}go()});
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.dataset.t){document.querySelectorAll(".tabs button,.panel").forEach(x=>x.classList.remove("on"));t.classList.add("on");$("#p-"+t.dataset.t).classList.add("on")}
+ if(t.id=="imp")$("#fIn").onchange=async ev=>{D.text=await ev.target.files[0].text();$("#tx").value=D.text;go()},$("#fIn").click()});
+$("#vS").onclick=()=>{D.view="single";go()};$("#vD").onclick=()=>{D.view="spread";go()};
+$("#zi").onclick=()=>{D.zoom=Math.min(200,D.zoom+10);zoom()};$("#zo").onclick=()=>{D.zoom=Math.max(30,D.zoom-10);zoom()};
+const zoom=()=>{$("#sheet").style.zoom=D.zoom/100;$("#zv").textContent=D.zoom+"%"};
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const smart=s=>s.replace(/(^|[\s(\[—])"/g,"$1“").replace(/"/g,"”").replace(/(^|[\s(\[—])'/g,"$1‘").replace(/'/g,"’").replace(/--/g,"—");
+function words(x){if(D.sq)x=smart(x);let it=0,bd=0;return x.split(/\s+/).map(w=>{let a=it,b=bd;w=w.replace(/\*\*|\*/g,m=>{if(m=="**"){bd^=1;if(bd)b=1}else{it^=1;if(it)a=1}return""});let s=esc(w);if(a)s="<i>"+s+"</i>";if(b)s="<b>"+s+"</b>";return s})}
+function parse(t){const o=[];t.replace(/\r/g,"").split(/\n{2,}/).forEach(b=>{b=b.trim();if(!b)return;
+ if(/^# /.test(b))o.push({t:"h1",x:b.slice(2)});else if(/^## /.test(b))o.push({t:"h2",x:b.slice(3)});
+ else if(/^(\*\*\*|---|\* \* \*)$/.test(b))o.push({t:"br"});else if(b=="\\pb")o.push({t:"pb"});
+ else if(/^> /.test(b))o.push({t:"q",x:b.replace(/^> ?/gm,"").replace(/\n/g," ")});else o.push({t:"p",x:b.replace(/\n/g," ")})});return o}
+function typoCSS(){const s=D;return `.page{font-family:"${s.font}",Georgia,serif;font-size:${s.fs}pt;line-height:${s.lh};color:#111;text-align:${s.just?"justify":"left"};hyphens:${s.hyph?"auto":"manual"};-webkit-hyphens:${s.hyph?"auto":"manual"};font-kerning:${s.kern?"normal":"none"};font-variant-ligatures:${s.lig?"common-ligatures":"none"};font-variant-numeric:${s.onum?"oldstyle-nums":"normal"};letter-spacing:${s.ls}em}
+.page p{text-indent:${s.indent?"1.5em":"0"};margin-bottom:${s.parsp}em}.page p.first,.page p.cont,.page p.q{text-indent:0}.page .sc::first-line{font-variant-caps:small-caps}`}
+let pages=[],tm;const go=()=>{clearTimeout(tm);tm=setTimeout(paginate,250)};
+async function paginate(){const s=D;$("#book").textContent=typoCSS();
+ $("#pr").textContent=`@page{size:${s.w}mm ${s.h}mm;margin:0}`;
+ await Promise.race([document.fonts.load(`${s.fs}pt "${s.font}"`),new Promise(r=>setTimeout(r,1500))]);
+ const W=mm2px(s.w),H=mm2px(s.h),cw=W-mm2px(s.mi+s.mo),ch=H-mm2px(s.mt+s.mb);
+ const sh=$("#sheet");sh.innerHTML="";pages=[];sh.style.zoom=D.zoom/100;
+ const mk=()=>{const n=pages.length+1,r=n%2==1,p=document.createElement("div");p.className="page";p.lang="en";p.style.cssText=`width:${W}px;height:${H}px`;
+  const b=document.createElement("div");b.className="bd";b.style.cssText=`left:${mm2px(r?s.mi:s.mo)}px;top:${mm2px(s.mt)}px;width:${cw}px;height:${ch}px`;
+  p.append(b);p._b=b;p._r=r;p._n=n;pages.push(p);sh.append(p);return p};
+ let cur=mk();const fits=()=>cur._b.scrollHeight<=cur._b.clientHeight+1,empty=()=>!cur._b.children.length;
+ const fresh=()=>{if(!empty())cur=mk()};
+ let chap="",noInd=false,afterH1=false;
+ if(s.tp){const d=document.createElement("div");d.className="tp";d.innerHTML=`<h1>${esc(s.title)}</h1><p class=first>${esc(s.author)}</p>`;cur._b.append(d);cur._front=1;cur=mk()}
+ function place(w,cls,tag){let i=0,cont=false;
+  while(i<w.length){const p=document.createElement(tag||"p"),rest=w.slice(i);p.className=cls+(cont?" cont":"");p.innerHTML=rest.join(" ");cur._b.append(p);
+   if(fits())return;let lo=0,hi=rest.length;
+   while(lo<hi){const m=Math.ceil((lo+hi)/2);p.innerHTML=rest.slice(0,m).join(" ");fits()?lo=m:hi=m-1}
+   if(s.wo){const left=rest.length-lo;if(lo<8&&cur._b.children.length>1)lo=0;else if(left<6&&lo>14)lo-=6-left}
+   if(lo<1){p.remove();if(empty())lo=1;else{cur=mk();continue}}
+   p.innerHTML=rest.slice(0,lo).join(" ");if(s.just)p.classList.add("split");i+=lo;cont=true;cur=mk()}}
+ for(const b of parse(s.text)){
+  if(b.t=="h1"){fresh();if(s.rect&&!cur._r){cur._blank=1;cur=mk()}const h=document.createElement("h1");h.style.marginTop=ch*s.sink/100+"px";h.innerHTML=words(b.x).join(" ");cur._b.append(h);cur._open=1;chap=b.x;noInd=afterH1=true}
+  else if(b.t=="h2"){const h=document.createElement("h2");h.innerHTML=words(b.x).join(" ");cur._b.append(h);if(!fits()||cur._b.scrollHeight>ch-s.fs*4){h.remove();cur=mk();cur._b.append(h)}noInd=true;afterH1=false}
+  else if(b.t=="br"){const d=document.createElement("div");d.className="br";d.textContent="* * *";cur._b.append(d);if(!fits()){d.remove();cur=mk()}noInd=true;afterH1=false}
+  else if(b.t=="pb"){fresh()}
+  else if(b.t=="q"){place(words(b.x),"q")}
+  else{place(words(b.x),"p"+(noInd?" first":"")+(afterH1&&s.dropcap?" dc":"")+(afterH1&&s.scap?" sc":""));noInd=afterH1=false}
+  if(b.t!="h1"&&b.t!="br"&&b.t!="h2"&&b.t!="q")noInd=false;
+  pages[pages.length-1]._chap=chap;if(cur._chap===undefined)cur._chap=chap}
+ pages.forEach(p=>{p._chap=p._chap||"";const y=mm2px(s.mt)/2-4,L=mm2px(p._r?s.mi:s.mo),f=(c,t,top)=>{const d=document.createElement("div");d.className=c;d.style.cssText=`left:${L}px;width:${cw}px;${top?"top:"+y+"px":"bottom:"+(mm2px(s.mb)/2-4)+"px"}`;d.textContent=t;p.append(d)};
+  if(p._blank||p._front)return;if(s.hdr&&!p._open)f("hd",p._r?chap_of(p):s.author,1);if(s.pn)f("ft",p._n)});
+ function chap_of(p){return(p._chap||s.title).replace(/\*/g,"")}
+ const rows=[];sh.innerHTML="";
+ if(s.view=="spread"){let i=0;while(i<pages.length){const r=document.createElement("div");r.className="row";
+  if(pages[i]._r){const sp=document.createElement("div");sp.className="spacer";sp.style.width=W+"px";r.append(sp,pages[i++])}else{r.append(pages[i++]);if(i<pages.length)r.append(pages[i++])}sh.append(r)}}
+ else pages.forEach(p=>{const r=document.createElement("div");r.className="row";r.append(p);sh.append(r)});
+ const wc=s.text.split(/\s+/).length;$("#info").textContent=`${pages.length} pages · ${wc.toLocaleString()} words · ${toU(s.w)} × ${toU(s.h)} ${U}`;zoom();
+ document.body.classList.toggle("guides",s.guides)}
+function dl(name,data,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1e3)}
+const slug=()=>(D.title||"book").replace(/[^\w]+/g,"-").toLowerCase();
+function htmlDoc(){return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(D.title)}</title><link href="${document.querySelector("link[href*=fonts.googleapis.com/css2]").href}" rel="stylesheet"><style>body{margin:0}${$("#pagecss").textContent}${$("#book").textContent}${$("#pr").textContent}.row{display:block}.page{break-after:page}</style></head><body>${pages.map(p=>p.outerHTML).join("")}</body></html>`}
+$("#bPdf").onclick=()=>{alert("In the print dialog choose Save as PDF, set Margins to None, and turn off Headers and footers.");window.print()};
+$("#bHtml").onclick=()=>dl(slug()+".html",htmlDoc(),"text/html");
+$("#bSave").onclick=()=>dl(slug()+".booktype.json",JSON.stringify(D),"application/json");
+$("#bLoad").onclick=()=>{$("#fIn").onchange=async e=>{Object.assign(D,JSON.parse(await e.target.files[0].text()));build();go()};$("#fIn").click()};
+if(window.google&&google.script&&google.script.run){["bDS","bDO"].forEach(i=>$("#"+i).hidden=false);const g=google.script.run;
+ $("#bDS").onclick=()=>g.withSuccessHandler(r=>alert("Saved to Drive: "+r.name)).withFailureHandler(e=>alert(e.message)).saveProject(JSON.stringify(D));
+ $("#bDO").onclick=()=>g.withSuccessHandler(l=>{if(!l.length)return alert("No saved projects yet.");const n=+prompt(l.map((f,i)=>i+1+". "+f.name).join("\n")+"\n\nEnter a number:");if(l[n-1])g.withSuccessHandler(j=>{Object.assign(D,JSON.parse(j));build();go()}).loadProject(l[n-1].id)}).listProjects()}
+try{const sv=localStorage.getItem("booktype");if(sv){Object.assign(D,JSON.parse(sv));build()}}catch(e){}
+setInterval(()=>{try{localStorage.setItem("booktype",JSON.stringify(D))}catch(e){}},4000);
+go();
+</script></body></html>
