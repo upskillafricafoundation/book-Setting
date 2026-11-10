@@ -2,8 +2,10 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Book Typesetter</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14213d"><link rel="apple-touch-icon" href="icons/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Typesetter">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{--navy:#14213d;--navy2:#1d2e52;--gold:#c9a227;--ink:#e8ebf2;--desk:#2a3550}
 *{box-sizing:border-box}
@@ -16,7 +18,7 @@ button:hover{border-color:var(--gold)}button.pri{background:var(--gold);color:#1
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 main{flex:1;display:flex;min-height:0}
 aside{width:340px;flex:none;background:var(--navy);display:flex;flex-direction:column;min-height:0}
-.tabs{display:flex}.tabs button{flex:1;border-radius:0;border:0;border-bottom:2px solid transparent;background:none;padding:10px}
+.tabs{display:flex}.tabs button{flex:1;border-radius:0;border:0;border-bottom:2px solid transparent;background:none;padding:10px 4px;font-size:13px}
 .tabs button.on{border-color:var(--gold);color:var(--gold)}
 .panel{padding:12px 14px;overflow:auto;display:none;gap:10px;flex-direction:column}.panel.on{display:flex}
 label{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -53,12 +55,12 @@ textarea{width:100%;min-height:340px;background:#0e182e;color:var(--ink);border:
 @media(max-width:800px){main{flex-direction:column}aside{width:auto;max-height:45vh}}
 </style></head><body>
 <header><h1>Book Typesetter</h1>
-<button id="bSave">Save project</button><button id="bLoad">Open project</button>
+<button id="bInst" hidden>Install app</button><button id="bSave">Save project</button><button id="bLoad">Open project</button>
 <button id="bDS" hidden>Save to Drive</button><button id="bDO" hidden>Open from Drive</button>
-<button id="bHtml">Export HTML</button><button class="pri" id="bPdf">Export PDF</button>
+<button id="bHtml">Export HTML</button><button id="bDocx">Export Word</button><button class="pri" id="bPdf">Export PDF</button>
 <input type="file" id="fIn" hidden></header>
-<main><aside><div class="tabs"><button data-t="m" class="on">Manuscript</button><button data-t="l">Layout</button><button data-t="y">Type</button></div>
-<div class="panel on" id="p-m"></div><div class="panel" id="p-l"></div><div class="panel" id="p-y"></div></aside>
+<main><aside><div class="tabs"><button data-t="m" class="on">Text</button><button data-t="l">Layout</button><button data-t="y">Type</button><button data-t="c">Chapter</button><button data-t="h">Header</button></div>
+<div class="panel on" id="p-m"></div><div class="panel" id="p-l"></div><div class="panel" id="p-y"></div><div class="panel" id="p-c"></div><div class="panel" id="p-h"></div></aside>
 <section id="view"><div id="bar"><button id="vS">Single</button><button id="vD">Spread</button>
 <button id="zo">−</button><span id="zv"></span><button id="zi">+</button><span id="info"></span></div><div id="sheet"></div></section></main>
 <script>
@@ -67,13 +69,16 @@ const SIZES={"Mass market 4.25 × 6.87 in":[108,175],"Digest 5.5 × 8.5 in":[140
 const FONTS=["EB Garamond","Crimson Pro","Libre Baskerville","Lora","Merriweather","Source Serif 4","Cormorant Garamond","Georgia","Times New Roman"];
 const P="The lamp burned low as she turned the last page, and for a moment the whole house seemed to hold its breath. \"Is that all?\" she asked, though she already knew the answer. Outside, the rain had *finally* stopped--the street shone like a river of tin, and 1984 felt very far away.";
 const D={title:"Untitled Book",author:"Author Name",text:"# Chapter One\n\n"+Array(9).fill(P).join("\n\n")+"\n\n***\n\n"+Array(5).fill(P).join("\n\n")+"\n\n# Chapter Two\n\n"+Array(10).fill(P).join("\n\n")+"\n\n## A quiet interlude\n\n> The best books are written twice: once by the author and once by the reader.\n\n"+Array(4).fill(P).join("\n\n"),
-size:"US Trade 6 × 9 in",w:152,h:229,mt:20,mb:22,mi:22,mo:16,rect:true,tp:true,hdr:true,pn:true,guides:false,sink:20,
+size:"US Trade 6 × 9 in",w:152,h:229,mt:20,mb:22,mi:22,mo:16,rect:true,tp:true,hdr:true,pn:true,guides:false,sink:20,hdrV:"{author}",hdrR:"{chapter}",hdrAl:"center",hdrRule:false,ftV:"{page}",ftR:"{page}",ftAl:"center",hfSize:80,hfItal:true,hfOpen:"footer only",pnFmt:"arabic",pnStart:1,pnFromCh:false,chLabel:"none",chLabelCase:"small caps",chTitleCase:"as typed",chAlign:"center",chSize:1.9,chLabelSize:1,chSpace:2,chOrn:"rule",chBold:false,dcLines:3,
 font:"EB Garamond",fs:11,lh:1.45,ls:0,just:true,hyph:true,indent:true,parsp:0,dropcap:true,scap:true,lig:true,kern:true,onum:false,wo:true,sq:true,view:"spread",zoom:80};
 let U="mm";const toU=v=>U=="mm"?+v.toFixed(1):+(v/25.4).toFixed(3),fromU=v=>U=="mm"?v:v*25.4;
+const CASES=["as typed","UPPERCASE","small caps"],ALIGN=["center","outside","inside"];
 const SPEC={m:[["title","Title","t"],["author","Author","t"]],
-l:[["size","Trim size","s",Object.keys(SIZES)],["unit","Units","u"],["w","Width","n","mm"],["h","Height","n","mm"],["mt","Top margin","n","mm"],["mb","Bottom margin","n","mm"],["mi","Inside margin","n","mm"],["mo","Outside margin","n","mm"],["sink","Chapter drop (%)","n"],["tp","Title page","c"],["rect","Chapters start on right page","c"],["hdr","Running headers","c"],["pn","Page numbers","c"],["guides","Show margin guides","c"]],
-y:[["font","Typeface","s",FONTS],["fs","Size (pt)","n","",.25],["lh","Line height","n","",.05],["ls","Letter spacing (em)","n","",.005],["parsp","Paragraph space (em)","n","",.1],["just","Justify text","c"],["hyph","Hyphenation","c"],["indent","First-line indent","c"],["dropcap","Drop cap at chapter start","c"],["scap","Small caps on opening line","c"],["lig","Ligatures","c"],["kern","Kerning","c"],["onum","Old-style numerals","c"],["wo","Avoid widows and orphans","c"],["sq","Smart quotes and dashes","c"]]};
-function build(){for(const t in SPEC){const p=$("#p-"+t);p.innerHTML="";
+l:[["size","Trim size","s",Object.keys(SIZES)],["unit","Units","u"],["w","Width","n","mm"],["h","Height","n","mm"],["mt","Top margin","n","mm"],["mb","Bottom margin","n","mm"],["mi","Inside margin","n","mm"],["mo","Outside margin","n","mm"],["tp","Title page","c"],["rect","Chapters start on right page","c"],["guides","Show margin guides","c"]],
+y:[["font","Typeface","s",FONTS],["fs","Size (pt)","n","",.25],["lh","Line height","n","",.05],["ls","Letter spacing (em)","n","",.005],["parsp","Paragraph space (em)","n","",.1],["just","Justify text","c"],["hyph","Hyphenation","c"],["indent","First-line indent","c"],["lig","Ligatures","c"],["kern","Kerning","c"],["onum","Old-style numerals","c"],["wo","Avoid widows and orphans","c"],["sq","Smart quotes and dashes","c"]],
+c:[["chLabel","Number label","s",["none","Chapter 1","Chapter One","Chapter I","1","I"]],["chLabelCase","Label case","s",CASES],["chLabelSize","Label size (em)","n","",.05],["chTitleCase","Title case","s",CASES],["chSize","Title size (em)","n","",.05],["chBold","Bold title","c"],["chAlign","Alignment","s",["center","left","right"]],["sink","Drop from top (%)","n","",1],["chSpace","Space after (em)","n","",.25],["chOrn","Ornament under title","s",["none","rule","* * *","❦","❖"]],["dropcap","Drop cap","c"],["dcLines","Drop cap lines","n","",1],["scap","Small caps on opening words","c"]],
+h:[["hdr","Running headers","c"],["hdrV","Left page header","t"],["hdrR","Right page header","t"],["hdrAl","Header alignment","s",ALIGN],["hdrRule","Rule under header","c"],["hfItal","Italic header","c"],["hfSize","Header/footer size (%)","n","",5],["ftV","Left page footer","t"],["ftR","Right page footer","t"],["ftAl","Footer alignment","s",ALIGN],["hfOpen","On chapter opening pages","s",["none","footer only","both"]],["pn","Page numbers","c"],["pnFmt","Number style","s",["arabic","roman-lower","roman-upper","alpha"]],["pnStart","Start at","n","",1],["pnFromCh","Start counting at first chapter","c"]]};
+function build(){for(const t in SPEC){const p=$("#p-"+t);p.innerHTML="";if(t=="h")p.insertAdjacentHTML("beforeend",'<p class="hint">Tokens: {page} {title} {author} {chapter}. Left page = even, right page = odd.</p>');
  if(t=="m"){p.insertAdjacentHTML("beforeend",'<p class="hint"># Chapter, ## Section, *** scene break, &gt; quote, *italic*, **bold**, \\pb page break</p>')}
  for(const [k,l,ty,o,st] of SPEC[t]){const lab=document.createElement("label");lab.className=ty=="c"?"c":"";let h="";
   if(ty=="c")h=`<input type=checkbox data-k=${k} ${D[k]?"checked":""}> ${l}`;
@@ -99,11 +104,17 @@ const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const smart=s=>s.replace(/(^|[\s(\[—])"/g,"$1“").replace(/"/g,"”").replace(/(^|[\s(\[—])'/g,"$1‘").replace(/'/g,"’").replace(/--/g,"—");
 function words(x){if(D.sq)x=smart(x);let it=0,bd=0;return x.split(/\s+/).map(w=>{let a=it,b=bd;w=w.replace(/\*\*|\*/g,m=>{if(m=="**"){bd^=1;if(bd)b=1}else{it^=1;if(it)a=1}return""});let s=esc(w);if(a)s="<i>"+s+"</i>";if(b)s="<b>"+s+"</b>";return s})}
 function parse(t){const o=[];t.replace(/\r/g,"").split(/\n{2,}/).forEach(b=>{b=b.trim();if(!b)return;
- if(/^# /.test(b))o.push({t:"h1",x:b.slice(2)});else if(/^## /.test(b))o.push({t:"h2",x:b.slice(3)});
+ if(/^#! /.test(b))o.push({t:"h1",x:b.slice(3),nonum:1});else if(/^# /.test(b))o.push({t:"h1",x:b.slice(2)});else if(/^## /.test(b))o.push({t:"h2",x:b.slice(3)});
  else if(/^(\*\*\*|---|\* \* \*)$/.test(b))o.push({t:"br"});else if(b=="\\pb")o.push({t:"pb"});
  else if(/^> /.test(b))o.push({t:"q",x:b.replace(/^> ?/gm,"").replace(/\n/g," ")});else o.push({t:"p",x:b.replace(/\n/g," ")})});return o}
-function typoCSS(){const s=D;return `.page{font-family:"${s.font}",Georgia,serif;font-size:${s.fs}pt;line-height:${s.lh};color:#111;text-align:${s.just?"justify":"left"};hyphens:${s.hyph?"auto":"manual"};-webkit-hyphens:${s.hyph?"auto":"manual"};font-kerning:${s.kern?"normal":"none"};font-variant-ligatures:${s.lig?"common-ligatures":"none"};font-variant-numeric:${s.onum?"oldstyle-nums":"normal"};letter-spacing:${s.ls}em}
-.page p{text-indent:${s.indent?"1.5em":"0"};margin-bottom:${s.parsp}em}.page p.first,.page p.cont,.page p.q{text-indent:0}.page .sc::first-line{font-variant-caps:small-caps}`}
+function typoCSS(){const s=D,cc=c=>c=="UPPERCASE"?"text-transform:uppercase;letter-spacing:.08em":c=="small caps"?"font-variant-caps:small-caps;letter-spacing:.06em":"";return `.page{font-family:"${s.font}",Georgia,serif;font-size:${s.fs}pt;line-height:${s.lh};color:#111;text-align:${s.just?"justify":"left"};hyphens:${s.hyph?"auto":"manual"};-webkit-hyphens:${s.hyph?"auto":"manual"};font-kerning:${s.kern?"normal":"none"};font-variant-ligatures:${s.lig?"common-ligatures":"none"};font-variant-numeric:${s.onum?"oldstyle-nums":"normal"};letter-spacing:${s.ls}em}
+.page p{text-indent:${s.indent?"1.5em":"0"};margin-bottom:${s.parsp}em}.page p.first,.page p.cont,.page p.q{text-indent:0}.page .sc::first-line{font-variant-caps:small-caps}
+.page h1{text-align:${s.chAlign};font-size:${s.chSize}em;font-weight:${s.chBold?700:500};margin:0 0 ${s.chOrn=="none"?s.chSpace:.5}em}
+.page h1 .cl{display:block;font-size:${s.chLabelSize/s.chSize}em;font-weight:400;margin-bottom:.5em;${cc(s.chLabelCase)}}
+.page h1 .ct{${cc(s.chTitleCase)}}
+.page .orn{text-align:${s.chAlign};margin:0 0 ${s.chSpace}em}.page .orn.rule{width:3em;border-top:1px solid #111;margin-left:${s.chAlign=="left"?0:"auto"};margin-right:${s.chAlign=="right"?0:"auto"}}
+.page .dc::first-letter{font-size:${(s.dcLines*s.lh/.85).toFixed(2)}em}
+.page .hd{font-style:${s.hfItal?"italic":"normal"}}.page .hd.rule{border-bottom:1px solid #999;padding-bottom:3px}`}
 let pages=[],tm;const go=()=>{clearTimeout(tm);tm=setTimeout(paginate,250)};
 async function paginate(){const s=D;$("#book").textContent=typoCSS();
  $("#pr").textContent=`@page{size:${s.w}mm ${s.h}mm;margin:0}`;
@@ -115,7 +126,7 @@ async function paginate(){const s=D;$("#book").textContent=typoCSS();
   p.append(b);p._b=b;p._r=r;p._n=n;pages.push(p);sh.append(p);return p};
  let cur=mk();const fits=()=>cur._b.scrollHeight<=cur._b.clientHeight+1,empty=()=>!cur._b.children.length;
  const fresh=()=>{if(!empty())cur=mk()};
- let chap="",noInd=false,afterH1=false;
+ let chap="",noInd=false,afterH1=false,chN=0;
  if(s.tp){const d=document.createElement("div");d.className="tp";d.innerHTML=`<h1>${esc(s.title)}</h1><p class=first>${esc(s.author)}</p>`;cur._b.append(d);cur._front=1;cur=mk()}
  function place(w,cls,tag){let i=0,cont=false;
   while(i<w.length){const p=document.createElement(tag||"p"),rest=w.slice(i);p.className=cls+(cont?" cont":"");p.innerHTML=rest.join(" ");cur._b.append(p);
@@ -125,7 +136,7 @@ async function paginate(){const s=D;$("#book").textContent=typoCSS();
    if(lo<1){p.remove();if(empty())lo=1;else{cur=mk();continue}}
    p.innerHTML=rest.slice(0,lo).join(" ");if(s.just)p.classList.add("split");i+=lo;cont=true;cur=mk()}}
  for(const b of parse(s.text)){
-  if(b.t=="h1"){fresh();if(s.rect&&!cur._r){cur._blank=1;cur=mk()}const h=document.createElement("h1");h.style.marginTop=ch*s.sink/100+"px";h.innerHTML=words(b.x).join(" ");cur._b.append(h);cur._open=1;chap=b.x;noInd=afterH1=true}
+  if(b.t=="h1"){fresh();if(s.rect&&!cur._r){cur._blank=1;cur=mk()}if(!b.nonum)chN++;const h=document.createElement("h1");h.style.marginTop=ch*s.sink/100+"px";const lb=!b.nonum&&s.chLabel!="none"?chLab(chN):"";h.innerHTML=(lb?`<span class="cl">${esc(lb)}</span>`:"")+`<span class="ct">${words(b.x).join(" ")}</span>`;cur._b.append(h);if(s.chOrn!="none"){const o=document.createElement("div");o.className="orn"+(s.chOrn=="rule"?" rule":"");o.textContent=s.chOrn=="rule"?"":s.chOrn;cur._b.append(o)}cur._open=1;chap=b.x.replace(/\*/g,"");noInd=afterH1=true}
   else if(b.t=="h2"){const h=document.createElement("h2");h.innerHTML=words(b.x).join(" ");cur._b.append(h);if(!fits()||cur._b.scrollHeight>ch-s.fs*4){h.remove();cur=mk();cur._b.append(h)}noInd=true;afterH1=false}
   else if(b.t=="br"){const d=document.createElement("div");d.className="br";d.textContent="* * *";cur._b.append(d);if(!fits()){d.remove();cur=mk()}noInd=true;afterH1=false}
   else if(b.t=="pb"){fresh()}
@@ -133,9 +144,15 @@ async function paginate(){const s=D;$("#book").textContent=typoCSS();
   else{place(words(b.x),"p"+(noInd?" first":"")+(afterH1&&s.dropcap?" dc":"")+(afterH1&&s.scap?" sc":""));noInd=afterH1=false}
   if(b.t!="h1"&&b.t!="br"&&b.t!="h2"&&b.t!="q")noInd=false;
   pages[pages.length-1]._chap=chap;if(cur._chap===undefined)cur._chap=chap}
- pages.forEach(p=>{p._chap=p._chap||"";const y=mm2px(s.mt)/2-4,L=mm2px(p._r?s.mi:s.mo),f=(c,t,top)=>{const d=document.createElement("div");d.className=c;d.style.cssText=`left:${L}px;width:${cw}px;${top?"top:"+y+"px":"bottom:"+(mm2px(s.mb)/2-4)+"px"}`;d.textContent=t;p.append(d)};
-  if(p._blank||p._front)return;if(s.hdr&&!p._open)f("hd",p._r?chap_of(p):s.author,1);if(s.pn)f("ft",p._n)});
- function chap_of(p){return(p._chap||s.title).replace(/\*/g,"")}
+ const fo=pages.findIndex(p=>p._open),fc=fo<0?0:fo;
+ const lab=p=>{if(!s.pn)return"";if(s.pnFromCh&&p._n<=fc)return"";return pnFmt(s.pnFromCh?p._n-fc-1+s.pnStart:p._n+s.pnStart-1)};
+ const al=(a,r)=>a=="center"?"center":(a=="outside")==r?"right":"left";
+ pages.forEach(p=>{if(p._blank||p._front)return;
+  const fill=t=>t.replace(/\{page\}/g,lab(p)).replace(/\{title\}/g,s.title).replace(/\{author\}/g,s.author).replace(/\{chapter\}/g,p._chap||"").trim();
+  const L=mm2px(p._r?s.mi:s.mo),op=p._open,r=p._r;
+  const put=(c,t,a,pos)=>{if(!t)return;const d=document.createElement("div");d.className=c;d.style.cssText=`left:${L}px;width:${cw}px;text-align:${al(a,r)};font-size:${s.hfSize}%;${pos}`;d.textContent=t;p.append(d)};
+  if(s.hdr&&(!op||s.hfOpen=="both"))put("hd"+(s.hdrRule?" rule":""),fill(r?s.hdrR:s.hdrV),s.hdrAl,`top:${mm2px(s.mt)/2-4}px`);
+  if(!op||s.hfOpen!="none")put("ft",fill(r?s.ftR:s.ftV),s.ftAl,`bottom:${mm2px(s.mb)/2-4}px`)});
  const rows=[];sh.innerHTML="";
  if(s.view=="spread"){let i=0;while(i<pages.length){const r=document.createElement("div");r.className="row";
   if(pages[i]._r){const sp=document.createElement("div");sp.className="spacer";sp.style.width=W+"px";r.append(sp,pages[i++])}else{r.append(pages[i++]);if(i<pages.length)r.append(pages[i++])}sh.append(r)}}
@@ -154,5 +171,106 @@ if(window.google&&google.script&&google.script.run){["bDS","bDO"].forEach(i=>$("
  $("#bDO").onclick=()=>g.withSuccessHandler(l=>{if(!l.length)return alert("No saved projects yet.");const n=+prompt(l.map((f,i)=>i+1+". "+f.name).join("\n")+"\n\nEnter a number:");if(l[n-1])g.withSuccessHandler(j=>{Object.assign(D,JSON.parse(j));build();go()}).loadProject(l[n-1].id)}).listProjects()}
 try{const sv=localStorage.getItem("booktype");if(sv){Object.assign(D,JSON.parse(sv));build()}}catch(e){}
 setInterval(()=>{try{localStorage.setItem("booktype",JSON.stringify(D))}catch(e){}},4000);
+/* ===== Chapter + page-number helpers and Word (.docx) export =====
+   Paste this whole block into index.html, directly above the final  go();  line. */
+const NUMW="Zero One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen".split(" "),TENS="_ _ Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety".split(" ");
+const W2=n=>n<20?NUMW[n]:n<100?TENS[n/10|0]+(n%10?"-"+NUMW[n%10]:""):String(n);
+function roman(n){let r="";[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]].forEach(([v,c])=>{while(n>=v){r+=c;n-=v}});return r}
+function chLab(n){const l=D.chLabel;return l=="Chapter 1"?"Chapter "+n:l=="Chapter One"?"Chapter "+W2(n):l=="Chapter I"?"Chapter "+roman(n):l=="1"?""+n:l=="I"?roman(n):""}
+function pnFmt(n){const f=D.pnFmt;return f=="roman-lower"?roman(n).toLowerCase():f=="roman-upper"?roman(n):f=="alpha"&&n>=1&&n<=26?String.fromCharCode(96+n):""+n}
+
+async function exportDocx(){
+ if(!window.JSZip)return alert("JSZip did not load. Check your internet connection and reload the page.");
+ const s=D,tw=v=>Math.round(v*56.693),pt=v=>Math.round(v*20),X=esc,sm=t=>s.sq?smart(t):t;
+ const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+ const XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ const chTw=tw(s.h-s.mt-s.mb),cwTw=tw(s.w-s.mi-s.mo),fs2=Math.round(s.fs*2);
+ /* runs */
+ const rp=o=>{let x="";if(o.b)x+="<w:b/>";if(o.i)x+="<w:i/>";if(o.sc)x+="<w:smallCaps/>";if(o.sz)x+=`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`;return x?`<w:rPr>${x}</w:rPr>`:""};
+ const run=(t,o={})=>t?`<w:r>${rp(o)}<w:t xml:space="preserve">${X(t)}</w:t></w:r>`:"";
+ const runs=(t,o={})=>t.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).map(p=>/^\*\*[^*]+\*\*$/.test(p)?run(p.slice(2,-2),{...o,b:1}):/^\*[^*]+\*$/.test(p)?run(p.slice(1,-1),{...o,i:1}):run(p,o)).join("");
+ const P=(st,pp,inner)=>`<w:p><w:pPr><w:pStyle w:val="${st}"/>${pp}</w:pPr>${inner}</w:p>`;
+ /* body paragraphs */
+ function bodyP(x,first,dc,sc){const raw=sm(x);let out="",txt=raw,st=first?"FirstPara":"Normal";
+  if(dc&&raw[0]!=="*"){const k=/^[“‘]/.test(raw)?2:1,N=s.dcLines,z=Math.round(N*s.fs*s.lh*2.6);st="FirstPara";
+   out+=`<w:p><w:pPr><w:pStyle w:val="FirstPara"/><w:keepNext/><w:framePr w:dropCap="drop" w:lines="${N}" w:wrap="around" w:vAnchor="text" w:hAnchor="text"/><w:spacing w:after="0" w:line="${pt(N*s.fs*s.lh)}" w:lineRule="exact"/><w:ind w:firstLine="0"/></w:pPr><w:r><w:rPr><w:sz w:val="${z}"/><w:szCs w:val="${z}"/></w:rPr><w:t>${X(raw.slice(0,k))}</w:t></w:r></w:p>`;txt=raw.slice(k)}
+  let inner;if(sc){const m=txt.split(" ").slice(0,4).join(" ");inner=m.includes("*")?runs(txt):run(m,{sc:1})+runs(txt.slice(m.length))}else inner=runs(txt);
+  return out+P(st,"",inner)}
+ /* chapter opening */
+ function chapXml(b,n){const lab=!b.nonum&&s.chLabel!="none"?chLab(n):"",sink=Math.round(chTw*s.sink/100);let o="";
+  if(lab)o+=P("ChapterLabel",`<w:keepNext/><w:spacing w:before="${sink}"/>`,run(sm(lab)));
+  o+=P("Heading1",lab?"":`<w:spacing w:before="${sink}"/>`,runs(sm(b.x)));
+  if(s.chOrn=="rule"){const g=Math.max(0,cwTw-1500),L=s.chAlign=="center"?g/2:s.chAlign=="right"?g:0,R=s.chAlign=="center"?g/2:s.chAlign=="left"?g:0;
+   o+=P("Normal",`<w:keepNext/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="111111"/></w:pBdr><w:spacing w:before="0" w:after="${pt(s.chSpace*s.fs)}"/><w:ind w:left="${Math.round(L)}" w:right="${Math.round(R)}" w:firstLine="0"/>`,"")}
+  else if(s.chOrn!="none")o+=P("Normal",`<w:spacing w:before="0" w:after="${pt(s.chSpace*s.fs)}"/><w:ind w:firstLine="0"/><w:jc w:val="${s.chAlign}"/>`,run(s.chOrn));
+  return o}
+ /* sections: title page, front text, then one section per chapter */
+ const secs=[];let cur,n=0,noInd=false,a1=false,firstTitle="";const ns=k=>secs.push(cur={k,x:[]});
+ if(s.tp){ns("tp");cur.x.push(P("Normal",`<w:spacing w:before="${Math.round(chTw*.3)}" w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/>`,run(sm(s.title),{sz:Math.round(2.6*fs2)})));
+  cur.x.push(P("Normal",`<w:ind w:firstLine="0"/><w:jc w:val="center"/>`,run(sm(s.author))))}
+ ns("body");
+ for(const b of parse(s.text)){
+  if(b.t=="h1"){if(!b.nonum)n++;if(!firstTitle)firstTitle=b.x.replace(/\*/g,"");ns("ch");cur.x.push(chapXml(b,n));noInd=a1=true}
+  else if(b.t=="h2"){cur.x.push(P("Heading2","",runs(sm(b.x))));noInd=true;a1=false}
+  else if(b.t=="br"){cur.x.push(P("SceneBreak","",run("* * *")));noInd=true;a1=false}
+  else if(b.t=="pb")cur.x.push(`<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>`);
+  else if(b.t=="q")cur.x.push(P("BookQuote","",runs(sm(b.x))));
+  else{cur.x.push(bodyP(b.x,noInd,a1&&s.dropcap,a1&&s.scap));noInd=a1=false}}
+ const S=secs.filter(z=>z.x.length);
+ /* section properties: page size, mirrored margins, number format, first-page header/footer */
+ const fmt={"roman-lower":"lowerRoman","roman-upper":"upperRoman",alpha:"lowerLetter"}[s.pnFmt]||"decimal";
+ const hf=`<w:headerReference w:type="default" r:id="rId11"/><w:headerReference w:type="even" r:id="rId12"/><w:headerReference w:type="first" r:id="rId13"/><w:footerReference w:type="default" r:id="rId14"/><w:footerReference w:type="even" r:id="rId15"/><w:footerReference w:type="first" r:id="rId16"/>`;
+ let started=false;
+ const sect=(z,i)=>{let st="";if((s.pnFromCh?z.k=="ch":true)&&!started){started=true;st=` w:start="${s.pnStart}"`}
+  return `<w:sectPr>${z.k=="tp"?"":hf}<w:type w:val="${i&&s.rect&&z.k=="ch"?"oddPage":"nextPage"}"/><w:pgSz w:w="${tw(s.w)}" w:h="${tw(s.h)}"/><w:pgMar w:top="${tw(s.mt)}" w:right="${tw(s.mo)}" w:bottom="${tw(s.mb)}" w:left="${tw(s.mi)}" w:header="${tw(s.mt/2)}" w:footer="${tw(s.mb/2)}" w:gutter="0"/><w:pgNumType w:fmt="${fmt}"${st}/>${z.k=="ch"?"<w:titlePg/>":""}</w:sectPr>`};
+ const bodyXml=S.map((z,i)=>{const sp=sect(z,i);if(i==S.length-1)return z.x.join("")+sp;
+  const q=z.x.pop(),k=q.lastIndexOf("</w:pPr>");z.x.push(q.slice(0,k)+sp+q.slice(k));return z.x.join("")}).join("");
+ const doc=`${XML}<w:document ${NS}><w:body>${bodyXml}</w:body></w:document>`;
+ /* headers and footers; Word fields keep page numbers and chapter names live */
+ const hs=Math.round(fs2*s.hfSize/100),al=(a,rec)=>a=="center"?"center":(a=="outside")==rec?"right":"left";
+ const tok=t=>(s.pn?t:t.replace(/\{page\}/g,"")).replace(/\{title\}/g,sm(s.title)).replace(/\{author\}/g,sm(s.author));
+ function hfPart(tag,tpl,a,rec,rule){const t=tok(tpl||"").trim(),rpr=`<w:rPr>${tag=="hdr"&&s.hfItal?"<w:i/>":""}<w:sz w:val="${hs}"/><w:szCs w:val="${hs}"/></w:rPr>`;
+  const inner=t.split(/(\{page\}|\{chapter\})/).map(x=>x=="{page}"?`<w:fldSimple w:instr=" PAGE "><w:r>${rpr}<w:t>1</w:t></w:r></w:fldSimple>`:x=="{chapter}"?`<w:fldSimple w:instr=" STYLEREF &quot;Heading 1&quot; "><w:r>${rpr}<w:t>${X(firstTitle)}</w:t></w:r></w:fldSimple>`:x?`<w:r>${rpr}<w:t xml:space="preserve">${X(x)}</w:t></w:r>`:"").join("");
+  const root=tag=="hdr"?"hdr":"ftr";
+  return `${XML}<w:${root} ${NS}><w:p><w:pPr><w:pStyle w:val="${tag=="hdr"?"Header":"Footer"}"/>${rule&&t?`<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="999999"/></w:pBdr>`:""}<w:jc w:val="${al(a,rec)}"/></w:pPr>${inner}</w:p></w:${root}>`}
+ const parts={
+  "header1":hfPart("hdr",s.hdr?s.hdrR:"",s.hdrAl,true,s.hdrRule),"header2":hfPart("hdr",s.hdr?s.hdrV:"",s.hdrAl,false,s.hdrRule),
+  "header3":hfPart("hdr",s.hdr&&s.hfOpen=="both"?s.hdrR:"",s.hdrAl,true,s.hdrRule),
+  "footer1":hfPart("ftr",s.ftR,s.ftAl,true,0),"footer2":hfPart("ftr",s.ftV,s.ftAl,false,0),
+  "footer3":hfPart("ftr",s.hfOpen!="none"?s.ftR:"",s.ftAl,true,0)};
+ /* styles */
+ const cs=c=>c=="UPPERCASE"?"<w:caps/>":c=="small caps"?"<w:smallCaps/>":"",csp=c=>cs(c)?`<w:spacing w:val="${pt(s.fs*.06)}"/>`:"";
+ const sz=v=>`<w:sz w:val="${Math.round(v*fs2)}"/><w:szCs w:val="${Math.round(v*fs2)}"/>`,F=X(s.font);
+ const sty=(id,name,pp,r)=>`<w:style w:type="paragraph" ${id=="Normal"?'w:default="1" ':""}w:styleId="${id}"><w:name w:val="${name}"/>${id=="Normal"?"":'<w:basedOn w:val="Normal"/>'}<w:qFormat/><w:pPr>${pp}</w:pPr>${r?`<w:rPr>${r}</w:rPr>`:""}</w:style>`;
+ const styles=`${XML}<w:styles ${NS} xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:cs="${F}" w:eastAsia="${F}"/>${s.ls?`<w:spacing w:val="${pt(s.ls*s.fs)}"/>`:""}${s.kern?'<w:kern w:val="2"/>':""}<w:sz w:val="${fs2}"/><w:szCs w:val="${fs2}"/><w:lang w:val="en-US"/>${s.lig?'<w14:ligatures w14:val="standard"/>':""}${s.onum?'<w14:numForm w14:val="oldStyle"/>':""}</w:rPr></w:rPrDefault></w:docDefaults>`+
+  sty("Normal","Normal",`${s.wo?"<w:widowControl/>":""}<w:spacing w:before="0" w:after="${pt(s.parsp*s.fs)}" w:line="${Math.round(s.lh*240)}" w:lineRule="auto"/><w:ind w:firstLine="${s.indent?pt(s.fs*1.5):0}"/><w:jc w:val="${s.just?"both":"left"}"/>`,"")+
+  sty("FirstPara","First Paragraph",`<w:ind w:firstLine="0"/>`,"")+
+  sty("Heading1","heading 1",`<w:keepNext/><w:suppressAutoHyphens/><w:spacing w:before="0" w:after="${pt(s.fs*(s.chOrn=="none"?s.chSpace:.5))}"/><w:ind w:firstLine="0"/><w:jc w:val="${s.chAlign}"/><w:outlineLvl w:val="0"/>`,`${s.chBold?"<w:b/>":""}${cs(s.chTitleCase)}${csp(s.chTitleCase)}${sz(s.chSize)}`)+
+  sty("ChapterLabel","Chapter Label",`<w:keepNext/><w:suppressAutoHyphens/><w:spacing w:before="0" w:after="${pt(s.fs*.5)}"/><w:ind w:firstLine="0"/><w:jc w:val="${s.chAlign}"/>`,`${cs(s.chLabelCase)}${csp(s.chLabelCase)}${sz(s.chLabelSize)}`)+
+  sty("Heading2","heading 2",`<w:keepNext/><w:suppressAutoHyphens/><w:spacing w:before="${pt(s.fs*1.6)}" w:after="${pt(s.fs)}"/><w:ind w:firstLine="0"/><w:jc w:val="center"/><w:outlineLvl w:val="1"/>`,sz(1.2))+
+  sty("BookQuote","Book Quote",`<w:spacing w:before="${pt(s.fs*.8)}" w:after="${pt(s.fs*.8)}"/><w:ind w:left="${pt(s.fs*1.5)}" w:right="${pt(s.fs*1.5)}" w:firstLine="0"/>`,"<w:i/>")+
+  sty("SceneBreak","Scene Break",`<w:spacing w:before="${pt(s.fs)}" w:after="${pt(s.fs)}"/><w:ind w:firstLine="0"/><w:jc w:val="center"/>`,"")+
+  sty("Header","header",`<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:firstLine="0"/>`,"")+
+  sty("Footer","footer",`<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:firstLine="0"/>`,"")+`</w:styles>`;
+ const settings=`${XML}<w:settings ${NS}><w:mirrorMargins/><w:defaultTabStop w:val="720"/>${s.hyph?"<w:autoHyphenation/>":""}<w:evenAndOddHeaders/></w:settings>`;
+ /* package */
+ const RT="http://schemas.openxmlformats.org/officeDocument/2006/relationships/",CT="application/vnd.openxmlformats-officedocument.wordprocessingml.";
+ const z=new JSZip(),names=Object.keys(parts);
+ z.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="${CT}document.main+xml"/><Override PartName="/word/styles.xml" ContentType="${CT}styles+xml"/><Override PartName="/word/settings.xml" ContentType="${CT}settings+xml"/>${names.map(k=>`<Override PartName="/word/${k}.xml" ContentType="${CT}${k[0]=="h"?"header":"footer"}+xml"/>`).join("")}</Types>`);
+ z.file("_rels/.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}officeDocument" Target="word/document.xml"/></Relationships>`);
+ z.file("word/_rels/document.xml.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}styles" Target="styles.xml"/><Relationship Id="rId2" Type="${RT}settings" Target="settings.xml"/>${names.map((k,i)=>`<Relationship Id="rId${11+i}" Type="${RT}${k[0]=="h"?"header":"footer"}" Target="${k}.xml"/>`).join("")}</Relationships>`);
+ z.file("word/document.xml",doc);z.file("word/styles.xml",styles);z.file("word/settings.xml",settings);
+ names.forEach(k=>z.file(`word/${k}.xml`,parts[k]));
+ const blob=await z.generateAsync({type:"blob",mimeType:CT+"document"});
+ dl(slug()+".docx",blob,CT+"document")}
+$("#bDocx").onclick=exportDocx;
+
+/* ===== PWA: install button and offline cache (works on https hosting such as GitHub Pages) ===== */
+let ip=null;const bi=$("#bInst"),sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone,ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();ip=e;if(!sa)bi.hidden=false});
+window.addEventListener("appinstalled",()=>{bi.hidden=true;ip=null});
+if(ios&&!sa)bi.hidden=false;
+bi.onclick=async()=>{if(ip){ip.prompt();await ip.userChoice;ip=null;bi.hidden=true}else alert("On iPhone or iPad: tap the Share button, then Add to Home Screen.")};
+if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)&&!(window.google&&google.script&&google.script.run))navigator.serviceWorker.register("sw.js").catch(()=>{});
 go();
 </script></body></html>
